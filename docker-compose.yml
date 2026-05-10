@@ -1,0 +1,19 @@
+services:
+  castnow:
+    build: .
+    container_name: castnow
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - MYSQL_HOST=host.docker.internal
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-}
+      - MYSQL_DB=newsnow
+      - MIMO_API_KEY=${MIMO_API_KEY:-}
+      - TTS_BASE_URL=${TTS_BASE_URL:-https://api.xiaomimimo.com/v1}
+      - CRON_INTERVAL=${CRON_INTERVAL:-600}
+      - PORT=3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
