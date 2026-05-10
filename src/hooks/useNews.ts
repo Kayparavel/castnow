@@ -1,12 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { ofetch } from "ofetch"
-import type { NewsItem } from "@shared/types"
-
-export interface SourceResponse {
-  sourceId: string
-  updatedTime: number
-  items: NewsItem[]
-}
+import type { SourceResponse } from "@shared/types"
 
 export function useNews() {
   return useQuery({

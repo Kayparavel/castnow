@@ -13,7 +13,13 @@ services:
       - MYSQL_DB=newsnow
       - MIMO_API_KEY=${MIMO_API_KEY:-}
       - TTS_BASE_URL=${TTS_BASE_URL:-https://api.xiaomimimo.com/v1}
+      - TTS_VOICE_SAMPLE_PATH=./data/voice-sample.wav
+      - TTS_STYLE_PROMPT=${TTS_STYLE_PROMPT:-}
+      - SOURCES_JSON_PATH=./data/sources.json
       - CRON_INTERVAL=${CRON_INTERVAL:-600}
+      - CACHE_TTL=${CACHE_TTL:-300}
       - PORT=3000
+    volumes:
+      - ./data:/app/data
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -13,8 +13,17 @@ export interface NewsItem {
   }
 }
 
+export interface SourceMeta {
+  name: string
+  color: string
+  type?: string
+  title?: string
+  home?: string
+}
+
 export interface SourceResponse {
   sourceId: string
   updatedTime: number
   items: NewsItem[]
+  meta: SourceMeta
 }

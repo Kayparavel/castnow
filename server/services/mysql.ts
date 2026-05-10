@@ -1,4 +1,6 @@
 import process from "node:process"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import mysql from "mysql2/promise"
 import { logger } from "../logger"
 
@@ -41,6 +43,46 @@ export async function getMySQLPool(): Promise<mysql.Pool | undefined> {
   }
 }
 
+interface SourceJsonEntry {
+  name: string
+  color?: string
+  type?: string
+  title?: string
+  home?: string
+  redirect?: string
+}
+
+let sourcesCache: Record<string, SourceJsonEntry> | undefined
+let sourcesCacheTime = 0
+const SOURCES_CACHE_TTL = 60_000
+
+function loadSources(): Record<string, SourceJsonEntry> {
+  const now = Date.now()
+  if (sourcesCache && now - sourcesCacheTime < SOURCES_CACHE_TTL) return sourcesCache
+  try {
+    const p = process.env.SOURCES_JSON_PATH || join(import.meta.dirname, "../../data/sources.json")
+    sourcesCache = JSON.parse(readFileSync(p, "utf-8"))
+    sourcesCacheTime = now
+  } catch (e) {
+    logger.warn("[sources] failed to load sources.json:", e)
+    if (!sourcesCache) sourcesCache = {}
+  }
+  return sourcesCache!
+}
+
+function getSourceMeta(id: string) {
+  const sources = loadSources()
+  const entry = sources[id]
+  if (!entry) return { name: id, color: "gray" }
+  return {
+    name: entry.name,
+    color: entry.color || "gray",
+    type: entry.type,
+    title: entry.title,
+    home: entry.home,
+  }
+}
+
 export async function fetchAllSources() {
   const p = await getMySQLPool()
   if (!p) return []
@@ -49,7 +91,29 @@ export async function fetchAllSources() {
     id: row.id,
     updated: row.updated,
     items: JSON.parse(row.data),
+    meta: getSourceMeta(row.id),
   }))
+}
+
+const CACHE_TTL = Number(process.env.CACHE_TTL) || 300
+
+interface CacheEntry {
+  data: Awaited<ReturnType<typeof fetchAllSources>>
+  time: number
+}
+
+let allSourcesCache: CacheEntry | undefined
+
+export async function fetchAllSourcesCached() {
+  const now = Date.now()
+  if (allSourcesCache && now - allSourcesCache.time < CACHE_TTL * 1000) {
+    return { data: allSourcesCache.data, cached: true }
+  }
+  const data = await fetchAllSources()
+  if (data.length > 0) {
+    allSourcesCache = { data, time: now }
+  }
+  return { data, cached: false }
 }
 
 export async function fetchSource(sourceId: string) {
@@ -57,5 +121,10 @@ export async function fetchSource(sourceId: string) {
   if (!p) return undefined
   const [rows] = await p.query("SELECT id, updated, data FROM news_items WHERE id = ?", [sourceId]) as [NewsRow[], any]
   if (!rows.length) return undefined
-  return { id: rows[0].id, updated: rows[0].updated, items: JSON.parse(rows[0].data) }
+  return {
+    id: rows[0].id,
+    updated: rows[0].updated,
+    items: JSON.parse(rows[0].data),
+    meta: getSourceMeta(rows[0].id),
+  }
 }

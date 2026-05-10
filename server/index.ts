@@ -5,10 +5,13 @@ import { serveStatic } from "@hono/node-server/serve-static"
 import { config } from "dotenv"
 import { newsRoutes } from "./routes/news"
 import { ttsRoutes } from "./routes/tts"
-import { fetchAllSources } from "./services/mysql"
+import { fetchAllSourcesCached } from "./services/mysql"
+import { preloadVoiceSample } from "./services/tts"
 import { logger } from "./logger"
 
 config({ path: ".env.server" })
+
+preloadVoiceSample()
 
 const app = new Hono()
 
@@ -21,8 +24,8 @@ if (intervalSeconds > 0) {
   logger.info(`[auto-refresh] enabled, every ${intervalSeconds}s`)
   async function refresh() {
     try {
-      const sources = await fetchAllSources()
-      logger.info(`[auto-refresh] ${sources.length} source(s) available`)
+      const { data } = await fetchAllSourcesCached()
+      logger.info(`[auto-refresh] ${data.length} source(s) available`)
     } catch (e) {
       logger.error("[auto-refresh] error:", e)
     }
