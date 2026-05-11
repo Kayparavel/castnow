@@ -1,14 +1,22 @@
 {
   "name": "castnow",
+  "displayName": "知了",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
+  "author": {
+    "url": "https://github.com/Kayparavel",
+    "email": "kayparavel@gmail.com",
+    "name": "kayparavel"
+  },
+  "homepage": "https://github.com/Kayparavel/newsnow-kayparavel",
   "scripts": {
     "dev:server": "tsx watch server/index.ts",
     "dev": "vite",
     "build": "node ./node_modules/vite/bin/vite.js build",
     "start": "node --env-file .env.server --import tsx server/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release": "bumpp"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.3",
@@ -28,6 +36,7 @@
     "@types/react-dom": "^19.0.4",
     "@unocss/reset": "^66.0.0",
     "@vitejs/plugin-react-swc": "^3.8.0",
+    "bumpp": "^11.1.0",
     "dotenv": "^16.4.7",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
