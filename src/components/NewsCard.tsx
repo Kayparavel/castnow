@@ -99,9 +99,9 @@ function NewsListTimeLine({ items }: { items: NewsItem[] }) {
   )
 }
 
-function buildTTSContent(items: NewsItem[]): string {
-  const titles = items.slice(0, 10).map((item, i) => `${i + 1}，${item.title}`)
-  return titles.join("。") + "。以上就是最新新闻。"
+function buildTTSContent(items: NewsItem[], name: string): string {
+  const titles = items.map((item, i) => `${i + 1}，${item.title}`)
+  return titles.join("。") + `。以上就是${name}最新新闻。`
 }
 
 export function NewsCard({ source }: { source: SourceResponse }) {
@@ -117,7 +117,7 @@ export function NewsCard({ source }: { source: SourceResponse }) {
       setIsPlaying(false)
       return
     }
-    const text = buildTTSContent(items)
+    const text = buildTTSContent(items, meta.name)
     ttsMutation.mutate(text, {
       onSuccess: (blob) => {
         const url = URL.createObjectURL(blob)

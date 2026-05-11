@@ -6,6 +6,22 @@ import { logger } from "../logger"
 
 const DEFAULT_TTS_BASE_URL = "https://api.xiaomimimo.com/v1"
 
+const TTS_CACHE_TTL = 3600_000
+const TTS_CACHE_MAX = 50
+const ttsCache = new Map<string, { data: Buffer; time: number }>()
+
+function evictTtsCache() {
+  const now = Date.now()
+  for (const [k, v] of ttsCache) {
+    if (now - v.time >= TTS_CACHE_TTL) ttsCache.delete(k)
+  }
+  while (ttsCache.size > TTS_CACHE_MAX) {
+    const first = ttsCache.keys().next().value
+    if (first !== undefined) ttsCache.delete(first)
+    else break
+  }
+}
+
 let voiceBase64: string | undefined
 let voiceMime = "audio/wav"
 
@@ -36,6 +52,12 @@ export function preloadVoiceSample() {
 }
 
 export async function synthesizeSpeech(text: string): Promise<Buffer> {
+  const cached = ttsCache.get(text)
+  if (cached && Date.now() - cached.time < TTS_CACHE_TTL) {
+    logger.info(`[tts] cache hit, ${cached.data.length} bytes`)
+    return cached.data
+  }
+
   const apiKey = process.env.MIMO_API_KEY
   if (!apiKey) throw new Error("MIMO_API_KEY not configured")
 
@@ -64,5 +86,8 @@ export async function synthesizeSpeech(text: string): Promise<Buffer> {
   const audioData = res?.choices?.[0]?.message?.audio?.data
   if (!audioData) throw new Error("No audio data in TTS response")
 
-  return Buffer.from(audioData, "base64")
+  const buf = Buffer.from(audioData, "base64")
+  evictTtsCache()
+  ttsCache.set(text, { data: buf, time: Date.now() })
+  return buf
 }
