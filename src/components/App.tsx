@@ -1,7 +1,10 @@
-import { useNews } from "~/hooks/useNews"
-import { useIsFetching } from "@tanstack/react-query"
+import { useNews, fetchNewsForce } from "~/hooks/useNews"
+import { useIsFetching, useQueryClient } from "@tanstack/react-query"
+import { useAtom, useAtomValue } from "jotai"
 import { NewsCard } from "./NewsCard"
-import { useCallback, useState, useRef } from "react"
+import { NavBar } from "./NavBar"
+import { useCallback, useRef } from "react"
+import { currentTabAtom, focusSourcesAtom } from "~/atoms"
 
 function Header({ onRefresh }: { onRefresh: () => void }) {
   const isFetching = useIsFetching({ queryKey: ["news"] })
@@ -20,8 +23,10 @@ function Header({ onRefresh }: { onRefresh: () => void }) {
           </span>
         </a>
       </span>
-      <span className="justify-self-center text-sm op-50 hidden md:block">
-        新闻语音播报
+      <span className="justify-self-center">
+        <span className="hidden md:inline-block">
+          <NavBar />
+        </span>
       </span>
       <span className="justify-self-end flex gap-2 items-center text-xl">
         <button
@@ -36,25 +41,29 @@ function Header({ onRefresh }: { onRefresh: () => void }) {
 }
 
 export default function App() {
-  const { data: sources, isLoading, refetch } = useNews()
-  const [search, setSearch] = useState("")
+  const { data: sources, isLoading } = useNews()
+  const queryClient = useQueryClient()
   const gridRef = useRef<HTMLDivElement>(null)
+  const [currentTab] = useAtom(currentTabAtom)
+  const focusList = useAtomValue(focusSourcesAtom)
 
-  const handleRefresh = useCallback(() => {
-    refetch()
-  }, [refetch])
+  const handleRefresh = useCallback(async () => {
+    const data = await fetchNewsForce()
+    queryClient.setQueryData(["news"], data)
+  }, [queryClient])
 
-  const filtered = search
-    ? sources?.filter(s =>
-        s.meta.name.toLowerCase().includes(search.toLowerCase())
-        || s.sourceId.toLowerCase().includes(search.toLowerCase())
-        || s.items.some(item => item.title.toLowerCase().includes(search.toLowerCase())),
-      )
-    : sources
+  const filtered = sources?.filter(s => {
+    if (currentTab === "focus") return focusList.includes(s.sourceId)
+    return true
+  })
 
   return (
     <div className="h-full overflow-x-auto px-4 md:px-10 lg:px-24">
       <Header onRefresh={handleRefresh} />
+
+      <div className="flex justify-center md:hidden mb-4">
+        <NavBar />
+      </div>
 
       <main className="mt-2 min-h-[calc(100vh-180px)] md:min-h-[calc(100vh-175px)] lg:min-h-[calc(100vh-194px)]">
         {isLoading && (
@@ -63,6 +72,12 @@ export default function App() {
 
         {sources && sources.length === 0 && (
           <div className="text-center py-20 op-50">暂无新闻数据，请检查 MySQL 连接配置</div>
+        )}
+
+        {filtered && filtered.length === 0 && !isLoading && (
+          <div className="text-center py-20 op-50">
+            {currentTab === "focus" ? "还没有关注任何新闻源，点击卡片上的星标关注" : "暂无数据"}
+          </div>
         )}
 
         <div

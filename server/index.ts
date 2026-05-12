@@ -5,7 +5,7 @@ import { serveStatic } from "@hono/node-server/serve-static"
 import { config } from "dotenv"
 import { newsRoutes } from "./routes/news"
 import { ttsRoutes } from "./routes/tts"
-import { fetchAllSourcesCached } from "./services/mysql"
+import { fetchAllSourcesFresh } from "./services/mysql"
 import { preloadVoiceSample } from "./services/tts"
 import { logger } from "./logger"
 

@@ -8,3 +8,7 @@ export function useNews() {
     queryFn: () => ofetch<SourceResponse[]>("/api/news"),
   })
 }
+
+export async function fetchNewsForce(): Promise<SourceResponse[]> {
+  return ofetch("/api/news?force=true")
+}

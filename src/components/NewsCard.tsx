@@ -1,6 +1,8 @@
 import type { NewsItem, SourceResponse } from "@shared/types"
 import { useState, useRef, useCallback } from "react"
+import { useAtom } from "jotai"
 import { useTTS } from "~/hooks/useTTS"
+import { focusSourcesAtom } from "~/atoms"
 
 function useRelativeTime(ts?: number | string) {
   if (!ts) return ""
@@ -109,6 +111,14 @@ export function NewsCard({ source }: { source: SourceResponse }) {
   const [isPlaying, setIsPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const ttsMutation = useTTS()
+  const [focusList, setFocusList] = useAtom(focusSourcesAtom)
+  const isFocused = focusList.includes(sourceId)
+
+  const toggleFocus = useCallback(() => {
+    setFocusList(prev =>
+      isFocused ? prev.filter(id => id !== sourceId) : [...prev, sourceId]
+    )
+  }, [isFocused, sourceId, setFocusList])
 
   const handlePlay = useCallback(() => {
     if (isPlaying) {
@@ -170,6 +180,12 @@ export function NewsCard({ source }: { source: SourceResponse }) {
           </span>
         </div>
         <div className={`flex gap-2 text-lg color-${meta.color}`}>
+          <button
+            type="button"
+            className={`btn w-6 h-6 ${isFocused ? "i-ph:star-fill" : "i-ph:star-duotone"}`}
+            onClick={toggleFocus}
+            title={isFocused ? "取消关注" : "关注"}
+          />
           <button
             type="button"
             disabled={isTTSLoading}

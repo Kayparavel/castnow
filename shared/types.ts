@@ -19,6 +19,7 @@ export interface SourceMeta {
   type?: string
   title?: string
   home?: string
+  column?: string
 }
 
 export interface SourceResponse {

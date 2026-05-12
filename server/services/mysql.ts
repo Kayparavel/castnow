@@ -50,13 +50,14 @@ interface SourceJsonEntry {
   title?: string
   home?: string
   redirect?: string
+  column?: string
 }
 
 let sourcesCache: Record<string, SourceJsonEntry> | undefined
 let sourcesCacheTime = 0
 const SOURCES_CACHE_TTL = 60_000
 
-function loadSources(): Record<string, SourceJsonEntry> {
+export function loadSources(): Record<string, SourceJsonEntry> {
   const now = Date.now()
   if (sourcesCache && now - sourcesCacheTime < SOURCES_CACHE_TTL) return sourcesCache
   try {
@@ -80,6 +81,7 @@ function getSourceMeta(id: string) {
     type: entry.type,
     title: entry.title,
     home: entry.home,
+    column: entry.column,
   }
 }
 
@@ -107,13 +109,26 @@ let allSourcesCache: CacheEntry | undefined
 export async function fetchAllSourcesCached() {
   const now = Date.now()
   if (allSourcesCache && now - allSourcesCache.time < CACHE_TTL * 1000) {
+    logger.info(`[news] cache hit, ${allSourcesCache.data.length} source(s) (age ${Math.round((now - allSourcesCache.time) / 1000)}s)`)
     return { data: allSourcesCache.data, cached: true }
   }
+  logger.info("[news] cache miss, querying MySQL...")
   const data = await fetchAllSources()
   if (data.length > 0) {
     allSourcesCache = { data, time: now }
+    logger.success(`[news] loaded ${data.length} source(s) from MySQL, cached for ${CACHE_TTL}s`)
   }
   return { data, cached: false }
+}
+
+export async function fetchAllSourcesFresh() {
+  logger.info("[news] force refresh, querying MySQL...")
+  const data = await fetchAllSources()
+  if (data.length > 0) {
+    allSourcesCache = { data, time: Date.now() }
+    logger.success(`[news] force loaded ${data.length} source(s) from MySQL`)
+  }
+  return data
 }
 
 export async function fetchSource(sourceId: string) {
